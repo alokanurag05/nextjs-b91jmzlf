@@ -11,7 +11,7 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-3.5-turbo", // 👈 safer model for now
         messages: [
           {
             role: "user",
@@ -26,8 +26,9 @@ export async function POST(req: Request) {
     return NextResponse.json({
       insight:
         data?.choices?.[0]?.message?.content ||
-        "No insight generated",
+        JSON.stringify(data),
     });
+
   } catch (error) {
     return NextResponse.json({
       insight: "Error generating insight",
