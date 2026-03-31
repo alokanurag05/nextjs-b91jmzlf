@@ -1,8 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
 
+/* ✅ TYPE FIX (VERY IMPORTANT) */
+type Trend = {
+  Trend: string;
+  Category: string;
+  US_Growth: string;
+  India_Stage: string;
+  Score: string;
+  Product_Idea: string;
+  Business_Idea: string;
+  Arbitrage: string;
+};
+
 export default function Page() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<Trend[]>([]);
   const [filter, setFilter] = useState("all");
 
   // Fetch data
@@ -19,14 +31,14 @@ export default function Page() {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter logic
+  // Filter
   const filtered =
     filter === "all"
       ? data
       : data.filter(item => Number(item.Score) >= 8);
 
-  // Score color logic
-  const getColor = (score) => {
+  // Score color
+  const getColor = (score: number) => {
     if (score >= 8) return "#16a34a";
     if (score >= 5) return "#f59e0b";
     return "#dc2626";
