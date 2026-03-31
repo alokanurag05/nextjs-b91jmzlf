@@ -1,177 +1,146 @@
 "use client";
 import { useEffect, useState } from "react";
 
-/* ✅ TYPE FIX (VERY IMPORTANT) */
-type Trend = {
-  Trend: string;
-  Category: string;
-  US_Growth: string;
-  India_Stage: string;
-  Score: string;
-  Product_Idea: string;
-  Business_Idea: string;
-  Arbitrage: string;
-};
-
 export default function Page() {
-  const [data, setData] = useState<Trend[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
+  const [insights, setInsights] = useState<{ [key: number]: string }>({});
 
   // Fetch data
   useEffect(() => {
     const fetchData = () => {
-      fetch("https://opensheet.elk.sh/1tiqiFX65W_T4K6l17TcTbf_ibrvkg6o8PnH2ywoAK70/Sheet1")
-        .then(res => res.json())
+      fetch(
+        "https://opensheet.elk.sh/1tiqiFX65W_T4K6l17TcTbf_ibrvkg6o8PnH2ywoAK70/Sheet1"
+      )
+        .then((res) => res.json())
         .then(setData);
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 60000);
 
+    // Auto refresh every 60 seconds
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Filter
-  const filtered =
+  // Filter logic
+  const filteredData =
     filter === "all"
       ? data
-      : data.filter(item => Number(item.Score) >= 8);
+      : data.filter((item) => item.Category === filter);
 
-  // Score color
-  const getColor = (score: number) => {
-    if (score >= 8) return "#16a34a";
-    if (score >= 5) return "#f59e0b";
-    return "#dc2626";
+  // AI Insight fetch
+  const getInsight = async (item: any, index: number) => {
+    if (insights[index]) return;
+
+    setInsights((prev) => ({
+      ...prev,
+      [index]: "Generating AI insight...",
+    }));
+
+    try {
+      const res = await fetch("/api/insight", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: `Analyze this trend: ${item.Trend} in ${item.Category}. Suggest opportunity in India.`,
+        }),
+      });
+
+      const data = await res.json();
+
+      setInsights((prev) => ({
+        ...prev,
+        [index]: data.insight,
+      }));
+    } catch (err) {
+      setInsights((prev) => ({
+        ...prev,
+        [index]: "Error generating insight",
+      }));
+    }
   };
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        background: "#f1f5f9",
-        minHeight: "100vh",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "25px",
-        }}
-      >
-        <h1 style={{ fontSize: "26px" }}>
-          🚀 Trend Intelligence Engine
-        </h1>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1>🚀 Trend Intelligence Engine</h1>
 
-        <select
-          onChange={(e) => setFilter(e.target.value)}
+      {/* Filter */}
+      <select
+        onChange={(e) => setFilter(e.target.value)}
+        style={{ marginBottom: 20, padding: 8 }}
+      >
+        <option value="all">All</option>
+        <option value="Health">Health</option>
+        <option value="Tech">Tech</option>
+        <option value="Food">Food</option>
+      </select>
+
+      {/* Cards */}
+      {filteredData.map((item, i) => (
+        <div
+          key={i}
           style={{
-            padding: "10px",
-            borderRadius: "10px",
-            border: "1px solid #cbd5f5",
+            background: "#fff",
+            padding: 15,
+            marginTop: 10,
+            borderRadius: 10,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
           }}
         >
-          <option value="all">All</option>
-          <option value="high">High Score (8+)</option>
-        </select>
-      </div>
+          <h3>{item.Trend}</h3>
+          <p>{item.Category}</p>
 
-      {/* Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "20px",
-        }}
-      >
-        {filtered.map((item, i) => {
-          const score = Number(item.Score);
+          <p>🌍 US Growth: {item.US_Growth}</p>
+          <p>🇮🇳 India Stage: {item.India_Stage}</p>
 
-          return (
+          <p style={{ color: "green", fontWeight: "bold" }}>
+            Score: {item.Score}
+          </p>
+
+          {/* Score Bar */}
+          <div
+            style={{
+              height: "8px",
+              background: "#e5e7eb",
+              borderRadius: "5px",
+              marginTop: "10px",
+            }}
+          >
             <div
-              key={i}
               style={{
-                background: "white",
-                padding: "22px",
-                borderRadius: "18px",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-                border: "1px solid #e2e8f0",
-                transition: "0.2s ease",
+                width: `${Number(item.Score) * 10}%`,
+                height: "100%",
+                background: "green",
+                borderRadius: "5px",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
-            >
-              {/* Title */}
-              <h2>{item.Trend}</h2>
-              <p style={{ color: "#64748b" }}>{item.Category}</p>
+            />
+          </div>
 
-              {/* Meta */}
-              <div style={{ marginTop: "10px" }}>
-                <p>🌍 US Growth: {item.US_Growth}</p>
-                <p>🇮🇳 India Stage: {item.India_Stage}</p>
-              </div>
+          {/* AI Insight */}
+          <p
+            onMouseEnter={() => getInsight(item, i)}
+            style={{
+              marginTop: 10,
+              cursor: "pointer",
+              color: "#444",
+            }}
+          >
+            💡 {insights[i] || "Hover to generate AI insight"}
+          </p>
 
-              {/* Score */}
-              <div
-                style={{
-                  marginTop: "10px",
-                  fontWeight: "bold",
-                  color: getColor(score),
-                }}
-              >
-                Score: {score}
-              </div>
+          <hr style={{ margin: "15px 0" }} />
 
-              {/* Progress Bar */}
-              <div
-                style={{
-                  height: "8px",
-                  background: "#e5e7eb",
-                  borderRadius: "5px",
-                  marginTop: "10px",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${score * 10}%`,
-                    height: "100%",
-                    background: getColor(score),
-                    borderRadius: "5px",
-                  }}
-                />
-              </div>
-
-              <hr style={{ margin: "15px 0" }} />
-
-              {/* AI Insight */}
-              <p style={{ fontSize: "14px", color: "#475569" }}>
-                💡 <b>Insight:</b>{" "}
-                {score >= 9
-                  ? "🚀 Breakout trend. Enter early for category leadership."
-                  : score >= 7
-                  ? "📈 Fast-growing trend. Strong potential with differentiation."
-                  : score >= 5
-                  ? "⚠️ Moderate opportunity. Requires niche positioning."
-                  : "❌ Low signal. Monitor but avoid heavy investment."}
-              </p>
-
-              <hr style={{ margin: "15px 0" }} />
-
-              {/* Actions */}
-              <p><b>🛒 Product:</b> {item.Product_Idea}</p>
-              <p><b>🏢 Business:</b> {item.Business_Idea}</p>
-              <p><b>⚡ Arbitrage:</b> {item.Arbitrage}</p>
-            </div>
-          );
-        })}
-      </div>
+          <p>
+            🛒 <b>Product:</b> {item.Product_Idea}
+          </p>
+          <p>
+            🏢 <b>Business:</b> {item.Business_Idea}
+          </p>
+          <p>
+            ⚡ <b>Arbitrage:</b> {item.Arbitrage}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
