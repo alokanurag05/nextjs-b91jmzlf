@@ -11,27 +11,31 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo", // 👈 safer model for now
+        model: "gpt-4o-mini", // ✅ FIXED MODEL
         messages: [
           {
             role: "user",
-            content: prompt,
+            content: `Give a sharp business insight in 1 line:\n${prompt}`,
           },
         ],
+        temperature: 0.7,
       }),
     });
 
     const data = await res.json();
 
+    console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2)); // 👈 DEBUG
+
     return NextResponse.json({
       insight:
         data?.choices?.[0]?.message?.content ||
-        JSON.stringify(data),
+        "⚠️ Insight generation failed",
     });
-
   } catch (error) {
+    console.error("ERROR:", error);
+
     return NextResponse.json({
-      insight: "Error generating insight",
+      insight: "❌ API error",
     });
   }
 }
